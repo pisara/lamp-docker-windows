@@ -1,0 +1,80 @@
+version: '3'
+
+services:
+  https-portal:
+    container_name: https-portal
+    image: steveltn/https-portal
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always
+    environment:
+      DOMAINS: 'mylamp.mynetwork -> http://php'
+      STAGE: 'local'
+    networks:
+      - mylamp
+
+  php:
+    container_name: php
+    build:
+        context: ./
+        dockerfile: phpdockerfile
+    ports:
+      - "10080:80"
+    volumes:
+      - ./html/:/var/www/html/
+      - ./mhsendmail:/usr/local/bin/mhsendmail
+      - ./composer.phar:/usr/local/bin/composer
+    tty: true
+    networks:
+      - mylamp
+
+  mysql:
+    container_name: mysql
+    image: mysql:8
+    ports:
+      - "13306:3306"
+    volumes: 
+      - ./mysql/:/var/lib/mysql/
+    environment:
+      - MYSQL_DATABASE=myapp
+      - MYSQL_ROOT_PASSWORD=1234
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pass
+      - MYSQL_ALLOW_EMPTY_PASSWORD=no
+      - MYSQL_RANDOM_ROOT_PASSWORD=no
+      - TZ=Asia/Tokyo
+    command: mysqld
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-use-native-aio=0
+    tty: true
+    networks:
+      - mylamp
+
+  mailhog:
+    container_name: mailhog
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    tty: true
+    networks:
+      - mylamp
+
+  pma:
+    container_name: pma
+    image: phpmyadmin/phpmyadmin
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=mysql
+      - PMA_USER=user
+      - PMA_PASSWORD=pass
+    ports:
+      - "10081:80"
+    tty: true
+    networks:
+      - mylamp
+
+networks:
+  mylamp:
